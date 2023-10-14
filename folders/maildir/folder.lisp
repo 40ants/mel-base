@@ -412,20 +412,16 @@
 			 message)))
 		(declare #-(or sbcl cmu)(dynamic-extent #'push-message))
 		(let ((uid-cache (uid-cache folder)))
-		  
-		  (mel.filesystem:map-directory 
-		   (lambda (file)
-		     (setf (gethash file uid-cache) (cons :new file))
-		     (funcall fn (push-message file)))
-		   (namestring (truename (new-mail folder))))
-		  
-		  (mel.filesystem:map-directory 
-		   (lambda (file)
-		     (declare (type string file))
-		     (let ((uid (uidify file)))
-		       (setf (gethash uid uid-cache) (cons :cur file))
-		       (funcall fn (push-message file))))
-		   (namestring (truename (current-mail folder))))))
+                  (dolist (folder-spec (list (list :new (new-mail folder))
+                                             (list :cur (current-mail folder))))
+                    (destructuring-bind (symbol subfolder) folder-spec
+                      (mel.filesystem:map-directory
+                       (lambda (file)
+                         (declare (type string file))
+                         (let ((uid (uidify file)))
+                           (setf (gethash uid uid-cache) (cons symbol file))
+                           (funcall fn (push-message file))))
+                       (namestring (truename subfolder)))))))
 	      
 	      (nreverse messages)))))
 
